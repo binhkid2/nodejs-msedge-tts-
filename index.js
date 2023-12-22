@@ -2,11 +2,11 @@ import { MsEdgeTTS } from "msedge-tts";
 import express from "express";
 import bodyParser from "body-parser";
 import "dotenv/config";
-import fs from 'fs';
+import fs from "fs";
 import cors from "cors";
 const tts = new MsEdgeTTS();
 const app = express();
-import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from "uuid";
 // Middleware to parse JSON request bodies
 app.use(bodyParser.json());
 // Middleware to validate Bearer token
@@ -43,22 +43,22 @@ app.use(cors(corsOptions))
 */
 //ALLOW ALL
 const corsOptions = {
-    origin: "*", // Allow all origins (not recommended for production without proper security measures)
-    credentials: true,
-  };
-  app.use(cors(corsOptions));
+  origin: "*", // Allow all origins (not recommended for production without proper security measures)
+  credentials: true,
+};
+app.use(cors(corsOptions));
 app.post("/api/tts", authenticateBearerToken, async (req, res) => {
   const text = req.body.text;
-   const voiceId = req.body.voice_id;
+  const voiceId = req.body.voice_id;
   // Using ISO string as file name
-  const fileName=uuid()
+  const fileName = uuid();
   try {
     await tts.setMetadata(
-        voiceId ,
+      voiceId,
       MsEdgeTTS.OUTPUT_FORMATS.WEBM_24KHZ_16BIT_MONO_OPUS
     );
 
-    const filePath = await tts.toFile(`./rac/${fileName}.webm`, text);  
+    const filePath = await tts.toFile(`./rac/${fileName}.webm`, text);
     // Read the WebM file using fs.readFile
 
     fs.readFile(`./rac/${fileName}.webm`, (err, data) => {
@@ -71,7 +71,15 @@ app.post("/api/tts", authenticateBearerToken, async (req, res) => {
       const base64Data = Buffer.from(data).toString("base64");
       // You can also do additional processing or conversion of the audio here if needed
       // Send the base64 data as a response
-      res.send({"base64Data": base64Data});
+      res.send({ base64Data: base64Data });
+      // Delete the file after sending it
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.error("Error deleting file:", err);
+        } else {
+          console.log("File deleted successfully");
+        }
+      });
     });
   } catch (error) {
     res.status(500).json({ error: error.message }); // Sending specific error message
